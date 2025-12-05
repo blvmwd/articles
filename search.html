@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>搜索文章</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🔍 搜索文章</h1>
+            <nav>
+                <a href="index.html">返回首页</a>
+                <a href="dashboard.html">我的文章</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <div class="form-group">
+                <input type="text" id="search-input" class="form-control" placeholder="输入关键词搜索文章..." style="font-size: 1.1rem;">
+            </div>
+            
+            <div id="search-results" class="articles-grid" style="margin-top: 2rem;">
+                <p>输入关键词开始搜索...</p>
+            </div>
+            
+            <div id="search-stats" style="margin-top: 1rem; color: #718096; font-size: 0.9rem;"></div>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="articles.js"></script>
+    <script>
+        let searchTimeout;
+        
+        async function searchArticles(query) {
+            const resultsContainer = document.getElementById('search-results');
+            const statsContainer = document.getElementById('search-stats');
+            
+            if (!query.trim()) {
+                resultsContainer.innerHTML = '<p>输入关键词开始搜索...</p>';
+                statsContainer.innerHTML = '';
+                return;
+            }
+            
+            resultsContainer.innerHTML = '<p>正在搜索...</p>';
+            
+            const result = await articleManager.searchArticles(query);
+            
+            if (result.success) {
+                const articles = result.data;
+                
+                if (articles.length === 0) {
+                    resultsContainer.innerHTML = '<p>没有找到相关文章</p>';
+                    statsContainer.innerHTML = `搜索 "${query}" 没有结果`;
+                    return;
+                }
+                
+                resultsContainer.innerHTML = articles.map(article => `
+                    <div class="article-card">
+                        <h3><a href="article.html?slug=${article.slug}">${article.title}</a></h3>
+                        ${article.excerpt ? `<p class="excerpt">${article.excerpt}</p>` : ''}
+                        <div class="meta">
+                            <span>👤 ${article.author_name}</span>
+                            <span>📅 ${articleManager.formatDate(article.created_at)}</span>
+                            <span>👁️ ${article.view_count || 0} 次阅读</span>
+                        </div>
+                        ${article.tags && article.tags.length > 0 ? `
+                            <div class="tags">
+                                ${article.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                        <a href="article.html?slug=${article.slug}" class="btn">阅读全文</a>
+                    </div>
+                `).join('');
+                
+                statsContainer.innerHTML = `找到 ${articles.length} 篇关于 "${query}" 的文章`;
+            } else {
+                resultsContainer.innerHTML = `<p class="alert alert-error">搜索失败: ${result.message}</p>`;
+                statsContainer.innerHTML = '';
+            }
+        }
+        
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            
+            const query = e.target.value.trim();
+            
+            searchTimeout = setTimeout(() => {
+                searchArticles(query);
+            }, 500);
+        });
+        
+        document.getElementById('search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                clearTimeout(searchTimeout);
+                searchArticles(e.target.value.trim());
+            }
+        });
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryParam = urlParams.get('q');
+        if (queryParam) {
+            document.getElementById('search-input').value = queryParam;
+            searchArticles(queryParam);
+        }
+    </script>
+</body>
+</html>

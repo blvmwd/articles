@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑文章</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>✏️ 编辑文章</h1>
+            <nav>
+                <a href="index.html">返回首页</a>
+                <a href="dashboard.html">我的文章</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <div id="message"></div>
+            
+            <form id="article-form">
+                <input type="hidden" id="article-id">
+                
+                <div class="form-group">
+                    <label for="article-title">文章标题 *</label>
+                    <input type="text" id="article-title" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="article-slug">URL Slug</label>
+                    <input type="text" id="article-slug" class="form-control">
+                    <small>如果不填，将根据标题自动生成。只能包含字母、数字和连字符。</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="article-content">文章内容 *</label>
+                    <textarea id="article-content" class="form-control" rows="20" required></textarea>
+                    <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #718096;">
+                        <p>支持Markdown语法：</p>
+                        <ul style="margin-left: 1rem;">
+                            <li>标题: # 一级标题, ## 二级标题</li>
+                            <li>加粗: **粗体**</li>
+                            <li>斜体: *斜体*</li>
+                            <li>代码: `代码` 或 ```代码块```</li>
+                            <li>列表: - 无序列表 或 1. 有序列表</li>
+                            <li>链接: [文字](网址)</li>
+                            <li>图片: ![描述](图片网址)</li>
+                            <li>数学公式: $行内公式$ 或 $$块级公式$$</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="article-tags">标签（用逗号分隔）</label>
+                    <input type="text" id="article-tags" class="form-control" placeholder="例如：技术,编程,JavaScript">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="article-published" checked>
+                        立即发布
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn">保存文章</button>
+                    <button type="button" onclick="window.history.back()" class="btn btn-secondary">取消</button>
+                    <button type="button" onclick="previewArticle()" class="btn btn-warning">预览</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <div id="preview-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>文章预览</h3>
+                <button class="modal-close" onclick="closePreview()">&times;</button>
+            </div>
+            <div id="preview-content" style="max-height: 60vh; overflow-y: auto;"></div>
+            <div style="margin-top: 1rem; text-align: center;">
+                <button onclick="closePreview()" class="btn">关闭预览</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="articles.js"></script>
+    <script src="markdown.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <script>
+        if (!authManager.checkAuth()) {
+            window.location.href = 'login.html';
+        }
+        
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+        
+        let isNewArticle = getQueryParam('new') === 'true';
+        let articleId = getQueryParam('id');
+        
+        async function loadArticleData() {
+            if (!articleId) return;
+            
+            const result = await articleManager.getArticle(articleId);
+            
+            if (result.success && result.data) {
+                const article = result.data;
+                
+                const user = await authManager.getCurrentUserInfo();
+                if (!user || (user.id !== article.author_id && !user.is_admin)) {
+                    alert('您没有权限编辑此文章');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                document.getElementById('article-id').value = article.id;
+                document.getElementById('article-title').value = article.title;
+                document.getElementById('article-slug').value = article.slug;
+                document.getElementById('article-content').value = article.content;
+                document.getElementById('article-tags').value = article.tags ? article.tags.join(', ') : '';
+                document.getElementById('article-published').checked = article.published;
+                
+                document.title = `编辑: ${article.title}`;
+            } else {
+                alert('文章加载失败');
+                window.location.href = 'dashboard.html';
+            }
+        }
+        
+        function previewArticle() {
+            const title = document.getElementById('article-title').value;
+            const content = document.getElementById('article-content').value;
+            const tags = document.getElementById('article-tags').value;
+            
+            if (!title.trim() || !content.trim()) {
+                alert('请填写标题和内容');
+                return;
+            }
+            
+            const contentHtml = markdownRenderer.render(content);
+            const tagsHtml = tags ? `
+                <div class="tags" style="margin-bottom: 1rem;">
+                    ${tags.split(',').map(tag => `<span class="tag">${tag.trim()}</span>`).join('')}
+                </div>
+            ` : '';
+            
+            document.getElementById('preview-content').innerHTML = `
+                <h1>${title}</h1>
+                ${tagsHtml}
+                <div class="article-content">${contentHtml}</div>
+            `;
+            
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typesetPromise();
+            }
+            
+            document.getElementById('preview-modal').classList.add('active');
+        }
+        
+        function closePreview() {
+            document.getElementById('preview-modal').classList.remove('active');
+        }
+        
+        document.getElementById('article-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const user = await authManager.getCurrentUserInfo();
+            if (!user) {
+                alert('请先登录');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            if (user.is_banned) {
+                alert('您的账户已被封禁，无法发布或修改文章');
+                return;
+            }
+            
+            const articleData = {
+                title: document.getElementById('article-title').value.trim(),
+                slug: document.getElementById('article-slug').value.trim() || undefined,
+                content: document.getElementById('article-content').value.trim(),
+                tags: document.getElementById('article-tags').value
+                    .split(',')
+                    .map(tag => tag.trim())
+                    .filter(tag => tag),
+                published: document.getElementById('article-published').checked
+            };
+            
+            if (!articleData.title || !articleData.content) {
+                alert('请填写标题和内容');
+                return;
+            }
+            
+            const messageEl = document.getElementById('message');
+            messageEl.innerHTML = '<div class="alert alert-info">正在保存...</div>';
+            
+            let result;
+            if (articleId) {
+                result = await articleManager.updateArticle(articleId, articleData, user.id);
+            } else {
+                result = await articleManager.createArticle(articleData, user.id, user.username);
+            }
+            
+            if (result.success) {
+                messageEl.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+                
+                let redirectSlug = articleData.slug || articleManager.generateSlug(articleData.title);
+                if (result.data && result.data[0]) {
+                    redirectSlug = result.data[0].slug;
+                }
+                
+                setTimeout(() => {
+                    window.location.href = `article.html?slug=${redirectSlug}`;
+                }, 1500);
+            } else {
+                messageEl.innerHTML = `<div class="alert alert-error">${result.message}</div>`;
+            }
+        });
+        
+        document.getElementById('article-title').addEventListener('blur', function() {
+            if (!articleId && !document.getElementById('article-slug').value) {
+                const slug = articleManager.generateSlug(this.value);
+                document.getElementById('article-slug').value = slug;
+            }
+        });
+        
+        if (articleId) {
+            loadArticleData();
+        } else {
+            document.title = '写文章';
+        }
+    </script>
+</body>
+</html>

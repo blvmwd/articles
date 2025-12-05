@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章系统 - 首页</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📚 文章系统</h1>
+            <nav>
+                <a href="index.html">首页</a>
+                <a href="search.html">搜索</a>
+                <a href="register.html">注册</a>
+                <a href="login.html">登录</a>
+                <a href="dashboard.html">我的文章</a>
+                <a href="admin.html">管理员</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <h2>最新文章</h2>
+            <div id="articles-container" class="articles-grid">
+                <p>正在加载文章...</p>
+            </div>
+            <div id="pagination" class="pagination"></div>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="articles.js"></script>
+    <script>
+        let currentPage = 1;
+        const articlesPerPage = 9;
+        
+        async function loadArticles(page = 1) {
+            const container = document.getElementById('articles-container');
+            const pagination = document.getElementById('pagination');
+            
+            container.innerHTML = '<p>正在加载文章...</p>';
+            
+            const result = await articleManager.getAllArticles(page, articlesPerPage);
+            
+            if (result.success) {
+                const articles = result.data;
+                
+                if (articles.length === 0) {
+                    container.innerHTML = '<p>暂无文章</p>';
+                    pagination.innerHTML = '';
+                    return;
+                }
+                
+                container.innerHTML = articles.map(article => `
+                    <div class="article-card">
+                        <h3><a href="article.html?slug=${article.slug}">${article.title}</a></h3>
+                        ${article.excerpt ? `<p class="excerpt">${article.excerpt}</p>` : ''}
+                        <div class="meta">
+                            <span>👤 ${article.author_name}</span>
+                            <span>📅 ${articleManager.formatDate(article.created_at)}</span>
+                            <span>👁️ ${article.view_count || 0} 次阅读</span>
+                        </div>
+                        ${article.tags && article.tags.length > 0 ? `
+                            <div class="tags">
+                                ${article.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                        <a href="article.html?slug=${article.slug}" class="btn">阅读全文</a>
+                    </div>
+                `).join('');
+                
+                updatePagination(result.totalPages, page);
+            } else {
+                container.innerHTML = `<p class="alert alert-error">加载失败: ${result.message}</p>`;
+                pagination.innerHTML = '';
+            }
+        }
+        
+        function updatePagination(totalPages, currentPage) {
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            
+            if (currentPage > 1) {
+                html += `<button class="btn" onclick="loadArticles(${currentPage - 1})">上一页</button>`;
+            }
+            
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === currentPage) {
+                    html += `<button class="btn active">${i}</button>`;
+                } else {
+                    html += `<button class="btn" onclick="loadArticles(${i})">${i}</button>`;
+                }
+            }
+            
+            if (currentPage < totalPages) {
+                html += `<button class="btn" onclick="loadArticles(${currentPage + 1})">下一页</button>`;
+            }
+            
+            pagination.innerHTML = html;
+        }
+        
+        loadArticles();
+    </script>
+</body>
+</html>

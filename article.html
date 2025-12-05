@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章详情</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📄 文章详情</h1>
+            <nav>
+                <a href="index.html">返回首页</a>
+                <a href="dashboard.html">我的文章</a>
+                <a href="edit-article.html?new=true">写文章</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="article-container" class="card">
+            <p>正在加载文章...</p>
+        </div>
+        
+        <div id="actions" style="text-align: center; margin-top: 2rem;"></div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="articles.js"></script>
+    <script src="markdown.js"></script>
+    <script>
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+        
+        async function loadArticle() {
+            const slug = getQueryParam('slug');
+            if (!slug) {
+                document.getElementById('article-container').innerHTML = '<p class="alert alert-error">文章不存在</p>';
+                return;
+            }
+            
+            const container = document.getElementById('article-container');
+            const actionsContainer = document.getElementById('actions');
+            
+            container.innerHTML = '<p>正在加载文章...</p>';
+            
+            const result = await articleManager.getArticleBySlug(slug);
+            
+            if (result.success && result.data) {
+                const article = result.data;
+                
+                document.title = `${article.title} - 文章系统`;
+                
+                const contentHtml = markdownRenderer.render(article.content);
+                
+                container.innerHTML = `
+                    <div class="article-header">
+                        <h1>${article.title}</h1>
+                    </div>
+                    
+                    <div class="article-meta">
+                        <div>
+                            <span class="author">作者：${article.author_name}</span>
+                            <span style="margin-left: 1rem;">创建时间：${articleManager.formatDate(article.created_at)}</span>
+                            ${article.updated_at !== article.created_at ? 
+                                `<span style="margin-left: 1rem;">最后修改：${articleManager.formatDate(article.updated_at)}</span>` : ''}
+                        </div>
+                        <div>
+                            <span>👁️ ${article.view_count || 0} 次阅读</span>
+                        </div>
+                    </div>
+                    
+                    ${article.tags && article.tags.length > 0 ? `
+                        <div class="tags" style="margin-bottom: 2rem;">
+                            ${article.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="article-content">
+                        ${contentHtml}
+                    </div>
+                `;
+                
+                markdownRenderer.initMathJax();
+                await showActionButtons(article);
+            } else {
+                container.innerHTML = `
+                    <p class="alert alert-error">文章加载失败: ${result.message || '文章不存在'}</p>
+                `;
+            }
+        }
+        
+        async function showActionButtons(article) {
+            const actionsContainer = document.getElementById('actions');
+            
+            authManager.checkAuth();
+            
+            if (!authManager.isLoggedIn) {
+                return;
+            }
+            
+            const user = await authManager.getCurrentUserInfo();
+            if (!user) return;
+            
+            let actionsHtml = '';
+            
+            if (user.id === article.author_id || user.is_admin) {
+                actionsHtml += `
+                    <a href="edit-article.html?id=${article.id}" class="btn">编辑文章</a>
+                    <button onclick="deleteArticle('${article.id}')" class="btn btn-danger" style="margin-left: 1rem;">删除文章</button>
+                `;
+            }
+            
+            actionsHtml += `<a href="index.html" class="btn btn-secondary" style="margin-left: 1rem;">返回首页</a>`;
+            
+            if (actionsHtml) {
+                actionsContainer.innerHTML = actionsHtml;
+            }
+        }
+        
+        async function deleteArticle(articleId) {
+            if (!confirm('确定要删除这篇文章吗？此操作不可撤销。')) {
+                return;
+            }
+            
+            const user = await authManager.getCurrentUserInfo();
+            if (!user) {
+                alert('请先登录');
+                return;
+            }
+            
+            const result = await articleManager.deleteArticle(articleId, user.id);
+            
+            if (result.success) {
+                alert('文章已删除');
+                window.location.href = 'index.html';
+            } else {
+                alert(`删除失败: ${result.message}`);
+            }
+        }
+        
+        loadArticle();
+    </script>
+</body>
+</html>

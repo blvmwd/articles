@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章系统 - 注册</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📝 用户注册</h1>
+            <nav>
+                <a href="index.html">返回首页</a>
+                <a href="login.html">已有账户？登录</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card" style="max-width: 400px; margin: 2rem auto;">
+            <h2>注册新账户</h2>
+            
+            <div id="message"></div>
+            
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="username">用户名 *</label>
+                    <input type="text" id="username" class="form-control" required>
+                    <small>用户名将用于登录和显示（3-20个字符）</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码 *</label>
+                    <input type="password" id="password" class="form-control" required>
+                    <small>密码至少需要6个字符</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm-password">确认密码 *</label>
+                    <input type="password" id="confirm-password" class="form-control" required>
+                </div>
+                
+                <button type="submit" class="btn" style="width: 100%;">注册</button>
+            </form>
+            
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+                <div class="alert alert-info">
+                    <p><strong>注意：</strong>新注册的账户需要管理员激活后才能使用。</p>
+                    <p>注册后请联系管理员 <strong>bilibilivmware</strong> 激活您的账户。</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        if (authManager.checkAuth()) {
+            window.location.href = 'dashboard.html';
+        }
+        
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const messageEl = document.getElementById('message');
+            
+            if (username.length < 3 || username.length > 20) {
+                messageEl.innerHTML = '<div class="alert alert-error">用户名需要3-20个字符</div>';
+                return;
+            }
+            
+            if (!/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(username)) {
+                messageEl.innerHTML = '<div class="alert alert-error">用户名只能包含字母、数字、下划线和中文字符</div>';
+                return;
+            }
+            
+            if (password.length < 6) {
+                messageEl.innerHTML = '<div class="alert alert-error">密码至少需要6个字符</div>';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                messageEl.innerHTML = '<div class="alert alert-error">两次输入的密码不一致</div>';
+                return;
+            }
+            
+            const result = await authManager.register(username, password);
+            
+            if (result.success) {
+                messageEl.innerHTML = `
+                    <div class="alert alert-success">
+                        ${result.message}
+                        <p style="margin-top: 0.5rem;">请等待管理员激活您的账户。</p>
+                    </div>
+                `;
+                
+                document.getElementById('register-form').reset();
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 3000);
+            } else {
+                messageEl.innerHTML = `<div class="alert alert-error">${result.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>

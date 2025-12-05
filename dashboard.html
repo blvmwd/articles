@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的文章 - 仪表板</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📊 我的仪表板</h1>
+            <nav>
+                <a href="index.html">返回首页</a>
+                <a href="edit-article.html?new=true">写文章</a>
+                <a href="#" id="logout-btn">退出登录</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="dashboard-header">
+            <h2>我的文章</h2>
+            <div>
+                <span id="user-info" style="margin-right: 1rem;">正在加载用户信息...</span>
+                <button onclick="deleteAccount()" class="btn btn-danger btn-sm">删除账户</button>
+            </div>
+        </div>
+        
+        <div id="message"></div>
+        
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>文章列表</h3>
+                <a href="edit-article.html?new=true" class="btn">+ 写文章</a>
+            </div>
+            
+            <div id="articles-container">
+                <p>正在加载您的文章...</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="articles.js"></script>
+    <script>
+        if (!authManager.checkAuth()) {
+            window.location.href = 'login.html';
+        }
+        
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            authManager.logout();
+            window.location.href = 'index.html';
+        });
+        
+        async function loadDashboard() {
+            const userInfoEl = document.getElementById('user-info');
+            const articlesContainer = document.getElementById('articles-container');
+            
+            const user = await authManager.getCurrentUserInfo();
+            if (user) {
+                let userStatus = '';
+                if (user.is_admin) {
+                    userStatus = '<span class="user-badge admin">管理员</span>';
+                } else if (user.is_banned) {
+                    userStatus = '<span class="user-badge banned">已封禁</span>';
+                } else if (user.is_active) {
+                    userStatus = '<span class="user-badge active">已激活</span>';
+                } else {
+                    userStatus = '<span class="user-badge inactive">未激活</span>';
+                }
+                
+                userInfoEl.innerHTML = `欢迎，${user.username} ${userStatus}`;
+                
+                if (user.is_banned) {
+                    document.getElementById('message').innerHTML = `
+                        <div class="alert alert-error">
+                            <strong>您的账户已被封禁！</strong>
+                            <p>您无法发布、修改或删除文章。</p>
+                        </div>
+                    `;
+                } else if (!user.is_active && !user.is_admin) {
+                    document.getElementById('message').innerHTML = `
+                        <div class="alert alert-warning">
+                            <strong>您的账户尚未激活！</strong>
+                            <p>请联系管理员 bilibilivmware 激活您的账户。</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            if (user) {
+                const result = await articleManager.getUserArticles(user.id);
+                
+                if (result.success) {
+                    const articles = result.data;
+                    
+                    if (articles.length === 0) {
+                        articlesContainer.innerHTML = `
+                            <p>您还没有发表过文章。</p>
+                            <a href="edit-article.html?new=true" class="btn">开始写第一篇文章</a>
+                        `;
+                        return;
+                    }
+                    
+                    articlesContainer.innerHTML = `
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>标题</th>
+                                        <th>状态</th>
+                                        <th>创建时间</th>
+                                        <th>浏览次数</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${articles.map(article => `
+                                        <tr>
+                                            <td><a href="article.html?slug=${article.slug}">${article.title}</a></td>
+                                            <td>
+                                                <span class="user-badge ${article.published ? 'active' : 'inactive'}">
+                                                    ${article.published ? '已发布' : '草稿'}
+                                                </span>
+                                            </td>
+                                            <td>${articleManager.formatDate(article.created_at)}</td>
+                                            <td>${article.view_count || 0}</td>
+                                            <td>
+                                                <a href="edit-article.html?id=${article.id}" class="btn btn-sm">编辑</a>
+                                                <button onclick="deleteArticle('${article.id}')" class="btn btn-danger btn-sm">删除</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    articlesContainer.innerHTML = `<p class="alert alert-error">加载失败: ${result.message}</p>`;
+                }
+            }
+        }
+        
+        async function deleteArticle(articleId) {
+            if (!confirm('确定要删除这篇文章吗？此操作不可撤销。')) {
+                return;
+            }
+            
+            const user = await authManager.getCurrentUserInfo();
+            if (!user) return;
+            
+            const result = await articleManager.deleteArticle(articleId, user.id);
+            
+            if (result.success) {
+                alert('文章已删除');
+                loadDashboard();
+            } else {
+                alert(`删除失败: ${result.message}`);
+            }
+        }
+        
+        async function deleteAccount() {
+            if (!confirm('确定要删除您的账户吗？此操作将删除您所有的文章且不可撤销！')) {
+                return;
+            }
+            
+            const result = await authManager.deleteCurrentUser();
+            
+            if (result.success) {
+                alert('账户已删除');
+                window.location.href = 'index.html';
+            } else {
+                alert(`删除失败: ${result.message}`);
+            }
+        }
+        
+        loadDashboard();
+    </script>
+</body>
+</html>

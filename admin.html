@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员后台</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>⚙️ 管理员后台</h1>
+            <nav>
+                <a href="index.html">返回首页</a>
+                <a href="dashboard.html">我的文章</a>
+                <a href="#" id="logout-btn">退出登录</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="admin-container">
+            <p>正在验证管理员权限...</p>
+        </div>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        async function checkAdminAccess() {
+            const container = document.getElementById('admin-container');
+            
+            if (!authManager.checkAuth()) {
+                container.innerHTML = `
+                    <div class="card">
+                        <h2>访问被拒绝</h2>
+                        <p>请先登录管理员账户。</p>
+                        <a href="login.html" class="btn">去登录</a>
+                    </div>
+                `;
+                return false;
+            }
+            
+            const user = await authManager.getCurrentUserInfo();
+            
+            if (!user || !user.is_admin) {
+                container.innerHTML = `
+                    <div class="card">
+                        <h2>访问被拒绝</h2>
+                        <p>您没有管理员权限。</p>
+                        <a href="index.html" class="btn">返回首页</a>
+                    </div>
+                `;
+                return false;
+            }
+            
+            return true;
+        }
+        
+        async function loadAdminPanel() {
+            const hasAccess = await checkAdminAccess();
+            if (!hasAccess) return;
+            
+            const container = document.getElementById('admin-container');
+            
+            container.innerHTML = `
+                <div class="dashboard-header">
+                    <h2>管理员控制面板</h2>
+                    <div>
+                        <span id="admin-info">管理员：正在加载...</span>
+                    </div>
+                </div>
+                
+                <div id="message"></div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card card">
+                        <h3 id="total-users">0</h3>
+                        <p>总用户数</p>
+                    </div>
+                    <div class="stat-card card">
+                        <h3 id="total-articles">0</h3>
+                        <p>总文章数</p>
+                    </div>
+                    <div class="stat-card card">
+                        <h3 id="pending-users">0</h3>
+                        <p>待激活用户</p>
+                    </div>
+                    <div class="stat-card card">
+                        <h3 id="banned-users">0</h3>
+                        <p>封禁用户</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>用户管理</h3>
+                    <div id="users-container">
+                        <p>正在加载用户列表...</p>
+                    </div>
+                </div>
+            `;
+            
+            loadAdminStats();
+            loadUsersList();
+        }
+        
+        async function loadAdminStats() {
+            try {
+                const { data: users, error: usersError } = await supabaseClient
+                    .from('users')
+                    .select('id, is_active, is_banned');
+                
+                if (usersError) throw usersError;
+                
+                const { data: articles, error: articlesError } = await supabaseClient
+                    .from('articles')
+                    .select('id');
+                
+                if (articlesError) throw articlesError;
+                
+                const totalUsers = users?.length || 0;
+                const pendingUsers = users?.filter(u => !u.is_active && !u.is_admin && !u.is_banned).length || 0;
+                const bannedUsers = users?.filter(u => u.is_banned).length || 0;
+                const totalArticles = articles?.length || 0;
+                
+                document.getElementById('total-users').textContent = totalUsers;
+                document.getElementById('total-articles').textContent = totalArticles;
+                document.getElementById('pending-users').textContent = pendingUsers;
+                document.getElementById('banned-users').textContent = bannedUsers;
+                
+                const user = await authManager.getCurrentUserInfo();
+                if (user) {
+                    document.getElementById('admin-info').textContent = `管理员：${user.username}`;
+                }
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+            }
+        }
+        
+        async function loadUsersList() {
+            const container = document.getElementById('users-container');
+            
+            const result = await authManager.getAllUsers();
+            
+            if (result.success) {
+                const users = result.data;
+                
+                if (users.length === 0) {
+                    container.innerHTML = '<p>暂无用户</p>';
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>状态</th>
+                                    <th>注册时间</th>
+                                    <th>最后登录</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${users.map(user => {
+                                    let statusBadge = '';
+                                    if (user.is_admin) {
+                                        statusBadge = '<span class="user-badge admin">管理员</span>';
+                                    } else if (user.is_banned) {
+                                        statusBadge = '<span class="user-badge banned">已封禁</span>';
+                                    } else if (user.is_active) {
+                                        statusBadge = '<span class="user-badge active">已激活</span>';
+                                    } else {
+                                        statusBadge = '<span class="user-badge inactive">未激活</span>';
+                                    }
+                                    
+                                    const formatDate = (dateStr) => {
+                                        if (!dateStr) return '从未登录';
+                                        const date = new Date(dateStr);
+                                        return date.toLocaleDateString('zh-CN');
+                                    };
+                                    
+                                    let actions = '';
+                                    if (!user.is_admin) {
+                                        if (!user.is_active && !user.is_banned) {
+                                            actions += `<button onclick="activateUser('${user.id}')" class="btn btn-success btn-sm">激活</button> `;
+                                        }
+                                        
+                                        if (user.is_banned) {
+                                            actions += `<button onclick="banUser('${user.id}', false)" class="btn btn-warning btn-sm">解封</button> `;
+                                        } else {
+                                            actions += `<button onclick="banUser('${user.id}', true)" class="btn btn-warning btn-sm">封禁</button> `;
+                                        }
+                                        
+                                        actions += `<button onclick="deleteUser('${user.id}')" class="btn btn-danger btn-sm">删除</button>`;
+                                    } else {
+                                        actions = '<span style="color: #718096;">系统管理员</span>';
+                                    }
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${user.username}</td>
+                                            <td>${statusBadge}</td>
+                                            <td>${formatDate(user.created_at)}</td>
+                                            <td>${formatDate(user.last_login)}</td>
+                                            <td>${actions}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<p class="alert alert-error">加载失败: ${result.message}</p>`;
+            }
+        }
+        
+        async function activateUser(userId) {
+            if (!confirm('确定要激活此用户吗？')) {
+                return;
+            }
+            
+            const result = await authManager.activateUser(userId);
+            
+            if (result.success) {
+                alert('用户已激活');
+                loadAdminStats();
+                loadUsersList();
+            } else {
+                alert(`激活失败: ${result.message}`);
+            }
+        }
+        
+        async function banUser(userId, banStatus) {
+            const action = banStatus ? '封禁' : '解封';
+            if (!confirm(`确定要${action}此用户吗？`)) {
+                return;
+            }
+            
+            const result = await authManager.banUser(userId, banStatus);
+            
+            if (result.success) {
+                alert(`用户已${action}`);
+                loadAdminStats();
+                loadUsersList();
+            } else {
+                alert(`${action}失败: ${result.message}`);
+            }
+        }
+        
+        async function deleteUser(userId) {
+            if (!confirm('确定要删除此用户吗？此操作将删除该用户的所有文章且不可撤销！')) {
+                return;
+            }
+            
+            const result = await authManager.deleteUser(userId);
+            
+            if (result.success) {
+                alert('用户已删除');
+                loadAdminStats();
+                loadUsersList();
+            } else {
+                alert(`删除失败: ${result.message}`);
+            }
+        }
+        
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            authManager.logout();
+            window.location.href = 'index.html';
+        });
+        
+        loadAdminPanel();
+    </script>
+</body>
+</html>
