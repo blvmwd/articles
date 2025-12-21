@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章系统 - 注册</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📝 新用户注册</h1>
+            <nav>
+                <a href="index-external.html">返回首页</a>
+                <a href="login-external.html">登录</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card" style="max-width: 400px; margin: 2rem auto;">
+            <h2>注册新账户</h2>
+            
+            <div id="message"></div>
+            
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" class="form-control" required minlength="3" maxlength="20">
+                    <small>用户名应为3-20个字符</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" class="form-control" required minlength="6">
+                    <small>密码至少6个字符</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm-password">确认密码</label>
+                    <input type="password" id="confirm-password" class="form-control" required>
+                </div>
+                
+                <div class="alert" style="background-color: #e6f7ff; color: #0066cc; margin-bottom: 1.5rem;">
+                    <p><strong>注意：</strong>新注册用户需要管理员激活后才能登录。</p>
+                    <p>注册后请联系 <strong>bilibilivmware</strong> 激活您的账户。</p>
+                </div>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%;">注册</button>
+            </form>
+            
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; text-align: center;">
+                <p>已有账户？ <a href="login-external.html">立即登录</a></p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 外部脚本 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+    <script src="config-simple.js" crossorigin="anonymous"></script>
+    <script src="auth-simple.js" crossorigin="anonymous"></script>
+    <script src="register-init.js" crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章系统 - 管理员后台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🛠️ 管理员后台</h1>
+            <nav>
+                <a href="index-external.html">首页</a>
+                <a href="dashboard-external.html">我的文章</a>
+                <button id="logout-btn" class="btn-danger">退出登录</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="auth-check">
+            <p>检查管理员权限...</p>
+        </div>
+        
+        <div id="admin-content" style="display: none;">
+            <!-- 用户管理 -->
+            <div class="card">
+                <h2>用户管理</h2>
+                <div id="user-management">
+                    <p>正在加载用户列表...</p>
+                </div>
+            </div>
+            
+            <!-- 文章管理 -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2>文章管理</h2>
+                    <div>
+                        <input type="text" id="article-search" class="form-control" placeholder="搜索文章..." style="width: 200px;">
+                    </div>
+                </div>
+                <div id="article-management">
+                    <p>正在加载文章列表...</p>
+                </div>
+            </div>
+            
+            <!-- 系统信息 -->
+            <div class="card">
+                <h2>系统信息</h2>
+                <div id="system-info">
+                    <p>正在加载系统信息...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 外部脚本 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+    <script src="config-simple.js" crossorigin="anonymous"></script>
+    <script src="auth-simple.js" crossorigin="anonymous"></script>
+    <script src="articles-simple.js" crossorigin="anonymous"></script>
+    <script src="admin-init.js" crossorigin="anonymous"></script>
+</body>
+</html>

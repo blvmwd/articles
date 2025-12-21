@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章系统 - 我的文章</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📊 我的文章</h1>
+            <nav>
+                <a href="index-external.html">首页</a>
+                <a href="search-external.html">搜索</a>
+                <button id="logout-btn" class="btn-danger">退出登录</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>我的文章</h2>
+                <button id="create-article-btn" class="btn-success">+ 写文章</button>
+            </div>
+            
+            <div id="user-info" class="alert" style="margin-bottom: 1.5rem;">
+                <p>正在加载用户信息...</p>
+            </div>
+            
+            <div id="message"></div>
+            
+            <div id="articles-container">
+                <p>正在加载文章...</p>
+            </div>
+        </div>
+        
+        <!-- 创建文章模态框 -->
+        <div id="create-article-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>创建新文章</h3>
+                    <button onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">×</button>
+                </div>
+                
+                <form id="article-form">
+                    <div class="form-group">
+                        <label for="article-title">标题</label>
+                        <input type="text" id="article-title" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="article-tags">标签（用逗号分隔）</label>
+                        <input type="text" id="article-tags" class="form-control" placeholder="例如: JavaScript,编程,教程">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="article-content">内容（支持Markdown）</label>
+                        <textarea id="article-content" class="form-control" rows="10" required></textarea>
+                        <small><a href="https://www.markdownguide.org/cheat-sheet/" target="_blank">Markdown语法参考</a></small>
+                    </div>
+                    
+                    <div class="form-check" style="margin-bottom: 1rem;">
+                        <input type="checkbox" id="article-published" checked>
+                        <label for="article-published">立即发布</label>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <button type="submit" class="btn">发布文章</button>
+                        <button type="button" onclick="closeModal()" class="btn">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- 外部脚本 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+    <script src="config-simple.js" crossorigin="anonymous"></script>
+    <script src="auth-simple.js" crossorigin="anonymous"></script>
+    <script src="articles-simple.js" crossorigin="anonymous"></script>
+    <script src="dashboard-init.js" crossorigin="anonymous"></script>
+</body>
+</html>

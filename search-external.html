@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章系统 - 搜索</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🔍 搜索文章</h1>
+            <nav>
+                <a href="index-external.html">首页</a>
+                <a href="dashboard-external.html">我的文章</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <h2>搜索文章</h2>
+            
+            <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                <input type="text" id="search-input" class="form-control" placeholder="输入关键词搜索..." style="flex: 1;">
+                <button id="search-btn" class="btn">搜索</button>
+            </div>
+            
+            <div id="search-results">
+                <p>输入关键词开始搜索...</p>
+            </div>
+            
+            <div id="search-info" style="margin-top: 1rem; color: #666; font-size: 0.9rem;"></div>
+        </div>
+    </main>
+
+    <!-- 外部脚本 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+    <script src="config-simple.js" crossorigin="anonymous"></script>
+    <script src="articles-simple.js" crossorigin="anonymous"></script>
+    <script src="search-init.js" crossorigin="anonymous"></script>
+</body>
+</html>

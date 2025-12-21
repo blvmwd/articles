@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章详情</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown-light.min.css">
+    <style>
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+        
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 15px;
+            }
+        }
+        
+        .article-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .article-header h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .article-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .article-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .back-button {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            text-decoration: none;
+        }
+        
+        .article-actions {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📖 文章阅读</h1>
+            <nav>
+                <a href="index-external.html">返回首页</a>
+                <a href="search-external.html">搜索</a>
+                <a href="dashboard-external.html">我的文章</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <a href="index-external.html" class="back-button">← 返回首页</a>
+        
+        <div class="card">
+            <div id="article-loading">
+                <p>正在加载文章...</p>
+            </div>
+            
+            <div id="article-content" style="display: none;">
+                <div class="article-header">
+                    <h1 id="article-title"></h1>
+                    <div class="article-meta">
+                        <span id="article-author"></span>
+                        <span id="article-date"></span>
+                        <span id="article-views"></span>
+                    </div>
+                    <div id="article-tags" class="article-tags"></div>
+                </div>
+                
+                <div id="article-body" class="markdown-body"></div>
+                
+                <div class="article-actions">
+                    <button onclick="window.history.back()" class="btn">返回</button>
+                    <div>
+                        <button onclick="window.printArticle()" class="btn">打印</button>
+                        <button onclick="window.shareArticle()" class="btn">分享</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="article-error" style="display: none;">
+                <div class="alert alert-error">
+                    <h3>文章加载失败</h3>
+                    <p id="error-message"></p>
+                    <a href="index-external.html" class="btn">返回首页</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 外部脚本 -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+    <script src="config-simple.js" crossorigin="anonymous"></script>
+    <script src="articles-simple.js" crossorigin="anonymous"></script>
+    <script src="article-init.js" crossorigin="anonymous"></script>
+</body>
+</html>
